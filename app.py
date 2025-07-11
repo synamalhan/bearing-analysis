@@ -12,18 +12,18 @@ def load_data():
 df = load_data()
 
 # Define main content tabs
-tab2, tab3, tab4 , tab5, tab6 , tab7, tab8, tab9= st.tabs(["Q1: EDA",  
+tab1, tab2, tab3, tab4 , tab5, tab6 , tab7, tab8, tab9= st.tabs(["EDA", "Q1: Make Comparison", 
                                                "Q2: Bearing vs Industry", "Q3: Environmental Factors", 
                                                "Q4: Lubrication Intervention", "Q5: Useful Life Analysis",
                                                "Q6: Make Life Comparison", "Q7: Bearing Type Life Ranges",
                                                "Q8: Factor Importance for Life Prediction"])
 
 
-with tab2:
+with tab1:
     eda.render(df)
 
-# with tab2:
-#     q1_make_comparison.render(df)
+with tab2:
+    q1_make_comparison.render(df)
 
 with tab3:
     q2_bearing_vs_industry.render(df)
