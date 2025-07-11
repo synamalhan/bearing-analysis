@@ -1,0 +1,7 @@
+lubrication_method,count,avg_life,median_life,severity_rate
+Drip Oil Feed Lubrication,40,468.4,412.5,0.6
+Force Oil Feed Lubrication,21,455.95238095238096,529.0,0.8095238095238095
+Grease Lubrication,927,414.53505933117583,417.0,0.5447680690399137
+Not Available,5988,475.7409819639279,430.0,0.4988309953239813
+Self Lubrication,46,399.0,388.0,0.5869565217391305
+Shield/Sealed Bearing,30,338.9,268.0,0.5333333333333333

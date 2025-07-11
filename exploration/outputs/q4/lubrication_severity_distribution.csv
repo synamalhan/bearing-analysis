@@ -1,0 +1,29 @@
+lubrication_method,bearing_severity_class,count,percentage
+Drip Oil Feed Lubrication,0,16,40.0
+Drip Oil Feed Lubrication,1,10,25.0
+Drip Oil Feed Lubrication,2,1,2.5
+Drip Oil Feed Lubrication,3,13,32.5
+Force Oil Feed Lubrication,0,4,16.67
+Force Oil Feed Lubrication,1,4,16.67
+Force Oil Feed Lubrication,2,3,12.5
+Force Oil Feed Lubrication,3,13,54.17
+Grease Lubrication,0,424,44.87
+Grease Lubrication,1,201,21.27
+Grease Lubrication,2,43,4.55
+Grease Lubrication,3,277,29.31
+Not Available,0,3052,49.45
+Not Available,1,1221,19.78
+Not Available,2,348,5.64
+Not Available,3,1551,25.13
+Ring Oil & Flooded Lubrication,0,1,50.0
+Ring Oil & Flooded Lubrication,3,1,50.0
+Self Lubrication,0,19,41.3
+Self Lubrication,1,5,10.87
+Self Lubrication,3,22,47.83
+Shield/Sealed Bearing,0,14,41.18
+Shield/Sealed Bearing,1,6,17.65
+Shield/Sealed Bearing,3,14,41.18
+Splash Oil Feed Lubrication,0,2,22.22
+Splash Oil Feed Lubrication,1,1,11.11
+Splash Oil Feed Lubrication,2,2,22.22
+Splash Oil Feed Lubrication,3,4,44.44
