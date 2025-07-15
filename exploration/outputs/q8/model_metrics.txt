@@ -1,2 +1,7 @@
-R2 Score: 0.354
-MAE: 185.55 days
+Random Forest Model Performance:
+
+R² Score:        0.3647
+MAE:             184.60 days
+RMSE:            248.09 days
+MAPE:            172.35%
+Test Samples:    1510

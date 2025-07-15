@@ -90,3 +90,45 @@ grouped = df.groupby(["industry", "machine", "rpm", "bearing_type"]).agg(
                 "max_life": "Max",
                 "count": "Samples"
             }), hide_index=True)
+
+    # --- Section: Machine + RPM Range Summary (Moved from Q6) ---
+    st.divider()
+    st.subheader("Average Operational Life by Machine Type and RPM Range")
+
+    rpm_df = pd.read_csv("exploration/outputs/q6/machine_rpm_life_summary.csv")
+    rpm_df['context'] = rpm_df['machine_type'] + " | " + rpm_df['rpm_range']
+    rpm_df = rpm_df.sort_values(by="avg_life", ascending=False)
+
+    machine_types = rpm_df['machine_type'].unique().tolist()
+    selected_machine = st.selectbox("Filter by Machine Type", options=["All"] + machine_types)
+
+    if selected_machine != "All":
+        filtered_df = rpm_df[rpm_df['machine_type'] == selected_machine]
+    else:
+        filtered_df = rpm_df.copy()
+
+    fig = px.bar(
+        filtered_df,
+        x="context",
+        y="avg_life",
+        color="avg_life",
+        color_continuous_scale="YlGnBu",
+        title="Avg Bearing Life by Machine Type & RPM Range",
+        hover_data=["median_life", "count"],
+        labels={"avg_life": "Avg Operational Life (days)", "context": "Machine | RPM Range"}
+    )
+    fig.update_layout(
+        xaxis_title="Machine + RPM Range",
+        yaxis_title="Avg Operational Life",
+        xaxis_tickangle=-45,
+        height=500
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+    - This helps identify **machine + RPM combinations** that tend to support **longer bearing life**.
+    - Use this insight to guide operational settings or asset design decisions.
+    """)
+
+    with st.expander("📋 View Table"):
+        st.dataframe(filtered_df, use_container_width=True)
