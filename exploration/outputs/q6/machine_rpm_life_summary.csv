@@ -1,0 +1,115 @@
+machine_type,rpm_range,avg_life,median_life,count
+Agitator - Agitator,2000–2999,608.5,608.5,2
+Agitator - Agitator,500–999,683.0,683.0,2
+Blower - Blower,1000–1999,526.3052391799545,587.0,439
+Blower - Blower,2000–2999,406.793893129771,414.0,262
+Blower - Blower,3000+,615.516129032258,663.0,62
+Blower - Blower,500–999,428.09448818897636,364.0,127
+Blower - Blower,<500,376.0184049079755,306.0,163
+Blower - Root Blower,1000–1999,858.3333333333334,844.0,6
+Blower - Root Blower,2000–2999,478.2857142857143,512.0,7
+Blower - Root Blower,500–999,260.4,320.5,10
+Blower - Root Blower,<500,80.5,80.5,2
+Compressor - Centrifugal Compressor,1000–1999,788.5,788.5,2
+Compressor - Screw Compressor,1000–1999,107.33333333333333,67.0,6
+Compressor - Screw Compressor,2000–2999,61.0,61.0,1
+Conveyor - Belt Conveyor,1000–1999,515.0,515.0,2
+Conveyor - Belt Conveyor,<500,474.91,284.5,100
+Conveyor - Bucket Elevator,1000–1999,704.375,786.0,24
+Conveyor - Bucket Elevator,500–999,1151.5,1151.5,2
+Conveyor - Bucket Elevator,<500,344.94444444444446,263.0,54
+Conveyor - Chain Conveyor,<500,86.66666666666667,77.0,3
+Conveyor - Pan Conveyor,<500,367.6666666666667,185.0,3
+Crusher - Cone Crusher,<500,559.1,585.0,10
+Crusher - Hammer Crusher,1000–1999,438.61538461538464,463.5,26
+Crusher - Hammer Crusher,500–999,391.734693877551,395.0,49
+Crusher - Hammer Crusher,<500,360.1025641025641,333.0,39
+Crusher - Jaw Crusher,1000–1999,241.3,181.5,10
+Crusher - Jaw Crusher,500–999,264.45454545454544,174.0,22
+Crusher - Jaw Crusher,<500,37.0,49.0,3
+Dryer Cylinder,1000–1999,514.0,547.0,5
+Dryer Cylinder,<500,156.7826086956522,127.0,23
+Extruder - Extruder,<500,154.0,154.0,1
+Fan - Axial Fan,1000–1999,479.92857142857144,517.5,84
+Fan - Axial Fan,2000–2999,262.0,247.0,6
+Fan - Axial Fan,500–999,343.29411764705884,343.5,102
+Fan - Axial Fan,<500,101.63636363636364,43.0,11
+Fan - Centrifugal Fan(Double Suction),1000–1999,276.55384615384617,229.0,65
+Fan - Centrifugal Fan(Double Suction),2000–2999,207.36,228.0,25
+Fan - Centrifugal Fan(Double Suction),500–999,305.30534351145036,309.0,131
+Fan - Centrifugal Fan(Double Suction),<500,247.95454545454547,243.0,22
+Fan - Centrifugal Fan(Single Suction),1000–1999,520.5707236842105,485.0,608
+Fan - Centrifugal Fan(Single Suction),2000–2999,516.0944881889764,560.0,127
+Fan - Centrifugal Fan(Single Suction),3000+,188.28571428571428,187.0,7
+Fan - Centrifugal Fan(Single Suction),500–999,431.32042253521126,345.5,568
+Fan - Centrifugal Fan(Single Suction),<500,544.7358490566038,551.5,212
+Fan - Over Hung Fan,1000–1999,552.6117647058824,527.0,425
+Fan - Over Hung Fan,2000–2999,490.36,566.0,50
+Fan - Over Hung Fan,500–999,322.9746835443038,308.5,158
+Fan - Over Hung Fan,<500,407.1186440677966,301.0,118
+Gearbox - Bevel Gearbox,1000–1999,475.3157894736842,460.0,76
+Gearbox - Bevel Gearbox,2000–2999,331.7142857142857,423.0,7
+Gearbox - Bevel Gearbox,500–999,266.54545454545456,286.0,11
+Gearbox - Bevel Gearbox,<500,328.9622641509434,326.0,53
+Gearbox - Helical Gearbox,1000–1999,514.2432432432432,423.0,111
+Gearbox - Helical Gearbox,2000–2999,569.7142857142857,556.0,7
+Gearbox - Helical Gearbox,500–999,690.9912280701755,672.0,114
+Gearbox - Helical Gearbox,<500,618.7933884297521,661.0,121
+Gearbox - Planetary Gearbox,1000–1999,209.0,169.5,8
+Gearbox - Planetary Gearbox,500–999,189.0,189.0,1
+Gearbox - Planetary Gearbox,<500,146.94117647058823,148.0,17
+Gearbox - Worm Gearbox,1000–1999,321.3076923076923,153.0,13
+Gearbox - Worm Gearbox,<500,429.57142857142856,515.0,7
+Mill - Ball Mill,<500,648.625,687.0,16
+Mill - Pinion,2000–2999,189.0,189.0,1
+Mill - Pinion,<500,358.17391304347825,328.0,23
+Mill - Roller Press,<500,310.27272727272725,292.0,11
+Mixer - Mixer,<500,541.8333333333334,541.0,24
+Motor - AC Motor,1000–1999,438.64218009478674,403.5,844
+Motor - AC Motor,2000–2999,480.1959798994975,451.0,199
+Motor - AC Motor,3000+,219.55555555555554,86.0,9
+Motor - AC Motor,500–999,442.9207920792079,376.0,404
+Motor - AC Motor,<500,406.45394736842104,361.5,152
+Motor - DC Motor,1000–1999,329.875,298.0,8
+Motor - DC Motor,2000–2999,811.6666666666666,841.0,3
+Motor - DC Motor,3000+,845.0,845.0,1
+Motor - DC Motor,500–999,371.92857142857144,321.5,28
+Motor - DC Motor,<500,409.46666666666664,438.0,15
+Motor - Hydraulic Motor,2000–2999,767.0,767.0,1
+Others - Non Standard,1000–1999,577.2105263157895,246.0,19
+Others - Non Standard,2000–2999,381.5,384.5,4
+Others - Non Standard,500–999,751.9428571428572,888.0,35
+Others - Non Standard,<500,541.375,540.0,64
+Pinion - Pinion,500–999,582.0,582.0,1
+Pinion - Pinion,<500,490.2564102564103,344.0,39
+Pump - Centrifugal Pump (Multi Stage),1000–1999,280.4727272727273,254.0,55
+Pump - Centrifugal Pump (Multi Stage),2000–2999,333.0740740740741,281.0,27
+Pump - Centrifugal Pump (Multi Stage),500–999,623.25,596.0,8
+Pump - Centrifugal Pump (Multi Stage),<500,165.0,207.0,3
+Pump - Centrifugal Pump (Over-Hung),1000–1999,354.9298245614035,343.0,57
+Pump - Centrifugal Pump (Over-Hung),2000–2999,390.75,382.5,20
+Pump - Centrifugal Pump (Over-Hung),500–999,431.2,386.5,30
+Pump - Centrifugal Pump (Over-Hung),<500,4.0,4.0,1
+Pump - Centrifugal Pump(Simply Supported),1000–1999,424.8840579710145,430.0,207
+Pump - Centrifugal Pump(Simply Supported),2000–2999,135.66666666666666,32.0,3
+Pump - Centrifugal Pump(Simply Supported),3000+,509.4,609.0,5
+Pump - Centrifugal Pump(Simply Supported),500–999,487.40845070422534,483.0,71
+Pump - Gear Pump,1000–1999,208.57142857142858,213.0,7
+Pump - Gear Pump,500–999,255.0,255.0,1
+Pump - Piston Pump,1000–1999,779.0,761.5,6
+Pump - Piston Pump,500–999,296.0,296.0,1
+Pump - Reciprocating Pump,1000–1999,527.875,675.0,8
+Pump - Screw Pump,1000–1999,190.33333333333334,180.0,3
+Pump - Screw Pump,<500,430.09090909090907,395.0,11
+Pump -Vertical,500–999,326.0,326.0,1
+Roll - Granulator,500–999,340.3333333333333,314.0,6
+Roll - Granulator,<500,163.33333333333334,162.0,6
+Roller - Calendar Roll,1000–1999,196.0,205.0,3
+Roller - Calendar Roll,500–999,260.375,242.0,8
+Roller - Calendar Roll,<500,399.16279069767444,252.0,43
+Rope - Drum,<500,462.2,263.0,10
+Spindle - Spindle,1000–1999,41.0,41.0,2
+Spindle - Spindle,500–999,167.16666666666666,149.0,6
+Spindle - Spindle,<500,606.0,578.0,25
+Turbine - Steam Turbine,3000+,978.0,978.0,1
+VibroScreen - Vibro Screen,1000–1999,99.0,99.0,1

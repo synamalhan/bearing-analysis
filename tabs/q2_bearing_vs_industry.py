@@ -22,7 +22,6 @@ def render(df=None):
         - Each industry must have **≥ 5 data points** for the bearing type.
         - **Operational Life** is calculated as days between `subscription_start` and `timestamp_of_fault`.
         - We use **ANOVA** to compare means of operational life.
-
         """)
 
         with st.expander("What is ANOVA?"):
@@ -53,8 +52,6 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
             | `num_industries` | Number of industries in which this bearing type occurs |
             | `p_value` | ANOVA test result p-value |
             | `is_significant` | `True` if p < 0.05 |
-            | `bearing_severity_class` | Class of bearing failure (0 = no failure, 1-3 = increasing severity) |
-
             """)
 
     # --- Column 2: Visual Output ---
@@ -63,7 +60,6 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
 
         anova_df = pd.read_csv("exploration/outputs/q2/anova_results.csv")
 
-        # Sort and highlight significant
         fig1 = px.bar(
             anova_df.sort_values("p_value"),
             x="bearing_type",
@@ -72,13 +68,13 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
             color_discrete_map={True: "#2ca02c", False: "#d62728"},
             title="ANOVA p-values by Bearing Type"
         )
-        fig1.update_layout(xaxis_title="Bearing Type", yaxis_title="p-value")
+        fig1.update_layout(xaxis_title="Bearing Type", yaxis_title="p-value (log scale)")
         fig1.update_yaxes(type="log")
         st.plotly_chart(fig1, use_container_width=True)
 
         st.markdown("""
-        - Green bars indicate bearing types where industry **does significantly affect** performance (p < 0.05).
-        - Red bars = no statistical evidence of performance difference by industry.
+        - Green = Bearing type with **statistically significant differences** in lifespan across industries.
+        - Red = No strong evidence that industry impacts that bearing’s life.
         """)
 
         st.markdown("### Full Table of ANOVA Results")
@@ -90,10 +86,8 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
         selected_bt = st.selectbox("Select Bearing Type", options=bearing_types)
 
         if selected_bt and df is not None:
-
             filtered = df[df['bearing_type_assigned_1'] == selected_bt]
 
-            # --- Boxplot: Operational Days by Industry ---
             st.markdown(f"**Industry-wise Operational Life for `{selected_bt}`**")
             fig2 = px.box(
                 filtered,
@@ -105,10 +99,8 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
             fig2.update_layout(xaxis_title="Industry", yaxis_title="Operational Days")
             st.plotly_chart(fig2, use_container_width=True)
 
-            # --- Stacked Bar: Failure Severity Distribution ---
             st.markdown(f"**Failure Severity Distribution for `{selected_bt}`**")
 
-            # Preprocess severity counts
             severity_dist = (
                 filtered
                 .groupby(['industry_type', 'bearing_severity_class'])
@@ -129,4 +121,39 @@ for bearing_type in df['bearing_type_assigned_1'].unique():
             )
             fig3.update_layout(xaxis_title="Industry", yaxis_title="Share (%)")
             st.plotly_chart(fig3, use_container_width=True)
+
+        st.divider()
+        st.subheader("📊 Visualizing Best Fits")
+
+        st.markdown("#### Heatmap: Average Operational Days of Bearings in Each Industry")
+
+        heatmap_df = pd.read_csv("exploration/outputs/q2/industry_bearing_heatmap.csv", index_col=0)
+
+        fig_heatmap = px.imshow(
+            heatmap_df,
+            aspect="auto",
+            labels=dict(x="Bearing Type", y="Industry", color="Avg Life"),
+            title="Average Life of Each Bearing Type in Each Industry",
+            color_continuous_scale="YlGnBu"
+        )
+        fig_heatmap.update_layout(height=600)
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+
+        st.subheader("🔄 Best Industry per Bearing Type")
+
+        best_industry_df = pd.read_csv("exploration/outputs/q2/best_industry_per_bearing.csv")
+
+        st.markdown("This table shows the **best-suited industry** for each bearing type based on average lifespan.")
+        st.dataframe(best_industry_df)
+
+        fig_industry = px.bar(
+            best_industry_df.sort_values("avg_operational_days", ascending=False),
+            x="bearing_type_assigned_1",
+            y="avg_operational_days",
+            color="best_industry",
+            title="Best Industry for Each Bearing Type by Avg Operational Days",
+            labels={"bearing_type_assigned_1": "Bearing Type", "avg_operational_days": "Avg Life"}
+        )
+        fig_industry.update_layout(xaxis_title="Bearing Type", yaxis_title="Avg Life (days)")
+        st.plotly_chart(fig_industry, use_container_width=True)
 

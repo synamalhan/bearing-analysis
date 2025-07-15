@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -17,21 +18,10 @@ def render(df=None):
 
         ### Steps Taken:
         - Calculated **operational days** from installation to failure.
-        - Plotted the **failure distribution** and **cumulative failure curve**.
-        - Identified key thresholds: **Median, 75th and 90th percentiles**.
-
-        ### Insights:
-        - Bearings tend to fail most frequently within a specific operational window.
-        - This window can guide **preventive replacement intervals**.
+        - Plotted the **failure distribution**, **cumulative curve**, and **survival curve**.
+        - Identified key thresholds: **Median, 75th and 90th percentiles**
+        - Assessed **early failure rate**.
         """)
-
-        with st.expander("Code: Calculate Useful Life"):
-            st.code("""
-df['operational_days'] = (df['timestamp_of_fault'] - df['subscription_start']).dt.days
-median = df['operational_days'].median()
-q75 = df['operational_days'].quantile(0.75)
-q90 = df['operational_days'].quantile(0.9)
-""", language="python")
 
     # --- Column 2: Graphs and Results ---
     with col2:
@@ -50,13 +40,7 @@ q90 = df['operational_days'].quantile(0.9)
         fig_hist.update_layout(bargap=0.05)
         st.plotly_chart(fig_hist, use_container_width=True)
 
-        st.markdown("""
-        - Shows how long bearings tend to last before failing.
-        - **Right-skewed** distribution: most bearings fail early.
-        """)
-
         st.subheader("Cumulative Failure Distribution")
-
         fig_cdf = px.ecdf(
             failure_df,
             x="operational_days",
@@ -65,28 +49,54 @@ q90 = df['operational_days'].quantile(0.9)
         )
         st.plotly_chart(fig_cdf, use_container_width=True)
 
-        st.markdown("""
-        - **50% of bearings fail by the median lifespan.**
-        - Helps identify thresholds for scheduled replacements.
-        """)
+        st.subheader("Kaplan-Meier Survival Curve")
+        surv_df = pd.read_csv("exploration/outputs/q5/survival_curve.csv")
+        fig_surv = px.line(
+            surv_df,
+            x="operational_days",
+            y="survival_probability",
+            title="Kaplan-Meier Survival Curve",
+            labels={"operational_days": "Operational Days", "survival_probability": "Probability of Surviving"}
+        )
+        fig_surv.update_layout(yaxis=dict(range=[0, 1]))
+        st.plotly_chart(fig_surv, use_container_width=True)
 
         st.subheader("Recommended Useful Life Thresholds")
-
         life_stats = pd.read_csv("exploration/outputs/q5/useful_life_summary.csv")
         st.dataframe(life_stats, hide_index=True)
 
-        st.markdown("""
-        **Recommendations**:
-        - Consider **preventive replacement** just before the 75th percentile (e.g., ~{} days)
-        - Balances cost of early replacement with risk of unexpected failure
-        """.format(int(life_stats.loc[life_stats['Metric'] == '75th Percentile', 'Days'].values[0])))
+        median = int(life_stats.loc[life_stats['Metric'] == 'Median', 'Days'].values[0])
+        q75 = int(life_stats.loc[life_stats['Metric'] == '75th Percentile', 'Days'].values[0])
+        q90 = int(life_stats.loc[life_stats['Metric'] == '90th Percentile', 'Days'].values[0])
+
+        st.markdown(f"""
+        ### 📌 Recommendation:
+        - Replace bearings proactively between **{q75} and {q90} days**.
+        - Helps avoid unexpected failures while maximizing usage.
+        """)
+
+        st.markdown(f"""
+        ### Risk Zones:
+        - 🟩 **Safe Zone**: 0–{median} days  
+        - 🟨 **Monitoring Zone**: {median}–{q75} days  
+        - 🟥 **High Risk Zone**: {q75}+ days  
+        """)
+
+        # Early failure rate
+        early_threshold = 500
+        early_failures = failure_df[failure_df['operational_days'] < early_threshold]
+        early_rate = len(early_failures) / len(failure_df)
+
+        st.markdown(f"""
+        ### Early Failures
+        - **{early_rate * 100:.1f}%** of bearings fail within **{early_threshold} days**
+        """)
 
         st.divider()
 
         st.subheader("Failure Counts by Lifetime Bin")
-
         binned_df = pd.read_csv("exploration/outputs/q5/life_bin_summary.csv")
-
+        binned_df['Life Bin'] = binned_df['Life Bin'].astype(str).str.replace(",", "–").str.replace("(", "").str.replace("]", "")
         fig_bin = px.bar(
             binned_df,
             x='Life Bin',
@@ -96,9 +106,3 @@ q90 = df['operational_days'].quantile(0.9)
         )
         fig_bin.update_layout(xaxis_title="Life Bin", yaxis_title="Failures")
         st.plotly_chart(fig_bin, use_container_width=True)
-
-        st.markdown("""
-        - Use this to identify **high-risk periods**.
-        - Most failures typically concentrate in one or two life bins.
-        """)
-
