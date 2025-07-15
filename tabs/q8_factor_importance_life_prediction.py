@@ -72,20 +72,20 @@ r2_score(y_test, preds)
 
         st.subheader("Actual vs Predicted")
         try:
-            st.image("exploration/outputs/q8/actual_vs_predicted.png", use_column_width=True)
+            st.image("exploration/outputs/q8/actual_vs_predicted.png", use_container_width=True)
         except:
             st.warning("Actual vs Predicted image not found.")
 
         st.subheader("Residuals")
         try:
-            st.image("exploration/outputs/q8/residual_hist.png", use_column_width=True)
+            st.image("exploration/outputs/q8/residual_hist.png", use_container_width=True)
         except:
             st.warning("Residual plot not found.")
 
         st.subheader("SHAP Summary")
         try:
-            st.image("exploration/outputs/q8/shap_summary_dot.png", use_column_width=True, caption="SHAP Summary (Dot)")
-            st.image("exploration/outputs/q8/shap_summary_bar.png", use_column_width=True, caption="SHAP Summary (Bar)")
+            st.image("exploration/outputs/q8/shap_summary_dot.png", use_container_width=True, caption="SHAP Summary (Dot)")
+            st.image("exploration/outputs/q8/shap_summary_bar.png", use_container_width=True, caption="SHAP Summary (Bar)")
         except:
             st.warning("SHAP plots missing.")
 
