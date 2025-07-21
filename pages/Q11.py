@@ -17,7 +17,7 @@ def load_data():
 df = load_data()
 
 # --- Optional Filters ---
-with st.expander("🔧 Optional Filters"):
+with st.expander("Optional Filters"):
     industry = st.selectbox("Filter by Industry", ["All"] + sorted(df["industry_type"].dropna().unique()))
     machine = st.selectbox("Filter by Machine Type", ["All"] + sorted(df["machine_type"].dropna().unique()))
     rpm_range = st.selectbox("Filter by RPM Range", ["All", "Low (<1000)", "Medium (1000-3000)", "High (>3000)"])
@@ -54,7 +54,7 @@ if "bearing_make" in df.columns and "bearing_severity_class" in df.columns:
     st.plotly_chart(fig, use_container_width=True)
 
     # --- Severity Share Table ---
-    st.subheader("📊 Percentage Breakdown of Failures by Severity (per Bearing Make)")
+    st.subheader("Percentage Breakdown of Failures by Severity (per Bearing Make)")
     pivot = severity_by_make.pivot(index="bearing_make", columns="bearing_severity_class", values="count").fillna(0)
     percent_table = (pivot.T / pivot.sum(axis=1)).T * 100
     st.dataframe(percent_table.round(2))

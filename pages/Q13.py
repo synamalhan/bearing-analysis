@@ -6,7 +6,7 @@ import plotly.express as px
 st.set_page_config(page_title="Q13: Time-to-Failure by Machine Type", layout="wide")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
 st.title("Q13. What is the median time-to-failure from subscription start across different machine types?")
-st.markdown("📆 Assess asset lifespan to schedule preventive replacements accurately.")
+st.markdown(" Assess asset lifespan to schedule preventive replacements accurately.")
 
 # Load dataset
 @st.cache_data
@@ -21,7 +21,7 @@ df = df.dropna(subset=["subscription_start", "timestamp_of_fault", "machine_type
 df["time_to_failure_days"] = (df["timestamp_of_fault"] - df["subscription_start"]).dt.days
 
 # Optional filters
-with st.expander("🔧 Optional Filters"):
+with st.expander(" Optional Filters"):
     industry = st.selectbox("Filter by Industry", ["All"] + sorted(df["industry_type"].dropna().unique()))
     bearing_make = st.selectbox("Filter by Bearing Make", ["All"] + sorted(df["bearing_make"].dropna().unique()))
 
@@ -48,5 +48,5 @@ fig = px.bar(
 st.plotly_chart(fig, use_container_width=True)
 
 # Show table
-st.subheader("📋 Median Days to Failure per Machine Type")
+st.subheader("Median Days to Failure per Machine Type")
 st.dataframe(median_df.set_index("machine_type").style.format("{:.0f}"))

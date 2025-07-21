@@ -18,7 +18,7 @@ df["lubrication_status"] = df["lubrication_type"]
 df["is_lubrication_missing"] = df["lubrication_status"].str.lower().str.contains("not available")
 
 # Optional filters
-with st.expander("🔍 Optional Filters"):
+with st.expander("Optional Filters"):
     industry = st.selectbox("Filter by Industry", ["All"] + sorted(df["industry_type"].dropna().unique().tolist()))
     machine = st.selectbox("Filter by Machine Type", ["All"] + sorted(df["machine_type"].dropna().unique().tolist()))
 
@@ -47,11 +47,11 @@ if "bearing_severity_class" in df.columns:
     st.plotly_chart(fig, use_container_width=True)
 
     # Percent breakdown
-    st.subheader("📊 Severity Breakdown (Percent with Missing Lubrication)")
+    st.subheader(" Severity Breakdown (Percent with Missing Lubrication)")
     total = severity_counts.groupby("bearing_severity_class")["count"].sum()
     missing = severity_counts[severity_counts["is_lubrication_missing"] == True].set_index("bearing_severity_class")["count"]
     percent_missing = (missing / total * 100).fillna(0).round(2)
     st.dataframe(percent_missing.reset_index().rename(columns={"count": "% Failures with Missing Lubrication"}))
 
 else:
-    st.error("⚠️ Column `bearing_severity_class` not found in the dataset.")
+    st.error(" Column `bearing_severity_class` not found in the dataset.")

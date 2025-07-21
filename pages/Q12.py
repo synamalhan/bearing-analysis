@@ -27,7 +27,7 @@ df = df[df["days_to_failure"] > 0]
 left_col, right_col = st.columns([1, 2])
 
 with left_col:
-    st.markdown("### 🔧 Filter Options")
+    st.markdown("### Filter Options")
 
     filter_cols = ["bearing_make", "bearing_type_assigned_1", "machine_type", "industry_type", "lubrication_type"]
 
@@ -39,7 +39,7 @@ with left_col:
 
 with right_col:
     if df.empty:
-        st.warning("⚠️ No data available after applying filters.")
+        st.warning(" No data available after applying filters.")
     else:
         median_days = int(df["days_to_failure"].median())
         percentile_75 = int(np.percentile(df["days_to_failure"], 75))

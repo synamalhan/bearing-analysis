@@ -18,7 +18,7 @@ def load_data():
 df = load_data()
 
 # --- Optional Filters ---
-with st.expander("🔍 Optional Filters"):
+with st.expander("Optional Filters"):
     industry = st.selectbox("Filter by Industry", ["All"] + sorted(df["industry_type"].dropna().unique().tolist()))
     machine = st.selectbox("Filter by Machine Type", ["All"] + sorted(df["machine_type"].dropna().unique().tolist()))
 
@@ -44,8 +44,8 @@ if "lubrication_type" in df.columns:
     fig.update_layout(xaxis_tickangle=-45)
     st.plotly_chart(fig, use_container_width=True)
 
-    st.subheader("📄 Raw Data Summary")
+    st.subheader("Raw Data Summary")
     st.dataframe(lube_counts)
 
 else:
-    st.error("⚠️ Column `lubrication_type` not found in the dataset.")
+    st.error("Column `lubrication_type` not found in the dataset.")
