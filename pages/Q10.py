@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Q7: Severity vs RPM", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Q10: Severity vs RPM", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
-st.title("Q7: Which RPM Ranges Result in Higher Failure Severity?")
+st.title("Q10: Which RPM Ranges Result in Higher Failure Severity?")
 st.markdown("Use this tool to explore whether **low, medium, or high RPM machines** face more severe faults.")
 
 @st.cache_data

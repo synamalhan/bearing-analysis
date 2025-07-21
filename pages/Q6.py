@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Q5: Lubrication Pattern Insights")
+st.set_page_config(page_title="Q6: Lubrication Pattern Insights")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
 
-st.title("Q5: Lubrication Patterns by Group")
+st.title("Q6: Lubrication Patterns by Group")
 st.markdown("Visualize how lubrication timing relates to failure across groups.")
 
 @st.cache_data

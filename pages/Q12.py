@@ -3,10 +3,10 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
-st.set_page_config(page_title="Q8: Preventive Replacement Interval")
+st.set_page_config(page_title="Q12: Preventive Replacement Interval")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
 
-st.title("Q8: What is the ideal preventive replacement interval?")
+st.title("Q12: What is the ideal preventive replacement interval?")
 st.markdown("Estimate data-driven preventive maintenance thresholds (median / 75th percentile).")
 
 @st.cache_data

@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Q4: Lubrication vs Failure Timing")
+st.set_page_config(page_title="Q5: Lubrication vs Failure Timing")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
 
-st.title("Q4: Lubrication Timing vs Failure Timing")
+st.title("Q5: Lubrication Timing vs Failure Timing")
 st.markdown("""
 Analyze how soon bearings fail after a lubrication event.
 """)

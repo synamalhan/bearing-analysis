@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.express as px
 
 # --- Config ---
-st.set_page_config(page_title="Q6: Severity Correlation", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Q9: Severity Correlation", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
-st.title("Q6: Does Failure Severity Correlate with RPM, Machine Type, or Bearing Type?")
+st.title("Q9: Does Failure Severity Correlate with RPM, Machine Type, or Bearing Type?")
 st.markdown("This view helps explore which combinations of features are linked with **higher severity bearing failures**.")
 
 # --- Load Data ---
