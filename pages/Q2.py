@@ -19,12 +19,14 @@ def load_data():
     def rpm_bucket(rpm):
         if pd.isna(rpm):
             return "Unknown"
-        elif rpm < 500:
-            return "Low"
+        elif rpm < 200:
+            return "(0-200)"
+        elif rpm < 900:
+            return "(200-900)"
         elif rpm < 1500:
-            return "Medium"
+            return "(900-1500)"
         else:
-            return "High"
+            return "(1500+)"
 
     df['rpm_range'] = df['rpm_min'].apply(rpm_bucket)
     df['asset_type'] = df['machine_type'] + " | " + df['bearing_make']

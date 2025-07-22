@@ -18,13 +18,13 @@ def load_data():
         if pd.isna(rpm):
             return "Unknown"
         elif rpm < 200:
-            return "below 200"
+            return "(0-200)"
         elif rpm < 900:
-            return "below 900"
+            return "(200-900)"
         elif rpm < 1500:
-            return "below 1500"
+            return "(900-1500)"
         else:
-            return "above 1500"
+            return "1500+"
     df['rpm_range'] = df['rpm_min'].apply(rpm_bucket)
     return df.dropna(subset=['operational_days'])
 
@@ -45,9 +45,9 @@ with col2:
     most_consistent = kpi_df['cv'].idxmin()
     st.metric("Most Consistent Bearing", f"{most_consistent}", f"{kpi_df['cv'].min():.1f}% CV")
 
-with col3:
-    most_data = kpi_df['count'].idxmax()
-    st.metric("Most Frequent Bearing", f"{most_data}", f"{int(kpi_df['count'].max())} samples")
+# with col3:
+#     most_data = kpi_df['count'].idxmax()
+#     st.metric("Most Frequent Bearing", f"{most_data}", f"{int(kpi_df['count'].max())} samples")
 
 st.divider()
 
@@ -61,6 +61,7 @@ plot_type_options = {
 }
 
 # --- Tab 1 ---
+# --- Tab 1 ---
 with tab1:
     col1, col2 = st.columns([1, 2])
 
@@ -73,34 +74,51 @@ with tab1:
         filtered = df[df['bearing_type_assigned_1'] == selected_bearing]
 
         if plot_type_options[plot_type_1] == "bar":
-            grouped = filtered.groupby(['asset_type', 'rpm_range']).agg(
+            grouped = filtered.groupby(['industry_type', 'machine_type', 'bearing_make', 'rpm_range']).agg(
                 avg_life=('operational_days', 'mean'),
                 count=('operational_days', 'count')
             ).reset_index()
 
+            grouped['Asset Configuration'] = grouped['industry_type'] + " | " + grouped['machine_type'] + " | " + grouped['bearing_make']
+
             fig = px.bar(
-                grouped, x='asset_type', y='avg_life', color='rpm_range',
-                hover_data=['count'], title=f"Lifespan of '{selected_bearing}' Across Asset Types",
-                labels={'avg_life': 'Avg Life (days)', 'asset_type': 'Asset'}
+                grouped, x='Asset Configuration', y='avg_life', color='rpm_range',
+                hover_data=['industry_type', 'machine_type', 'bearing_make', 'count'],
+                title=f"Lifespan of '{selected_bearing}' Across Asset Configurations",
+                labels={'avg_life': 'Avg Life (days)', 'Asset Configuration': 'Asset'}
             )
             fig.update_layout(xaxis_tickangle=-30)
             st.plotly_chart(fig, use_container_width=True)
-            st.dataframe(grouped.rename(columns={'avg_life': 'Avg Life (days)', 'count': 'Sample Count'}))
+
+            st.dataframe(grouped.rename(columns={
+                'avg_life': 'Avg Life (days)',
+                'count': 'Sample Count',
+                'industry_type': 'Industry',
+                'machine_type': 'Machine',
+                'bearing_make': 'Make'
+            }))
 
         else:
             fig_func = px.box if plot_type_options[plot_type_1] == "box" else px.violin
+            filtered['Asset Configuration'] = filtered['industry_type'] + " | " + filtered['machine_type'] + " | " + filtered['bearing_make']
+
             fig = fig_func(
-                filtered, x='asset_type', y='operational_days', color='rpm_range',
-                points="all", title=f"{plot_type_1} of '{selected_bearing}' Across Asset Types",
-                labels={'asset_type': 'Asset Type', 'operational_days': 'Operational Days'}
+                filtered, x='Asset Configuration', y='operational_days', color='rpm_range',
+                points="all", title=f"{plot_type_1} of '{selected_bearing}' Across Asset Configurations",
+                labels={'Asset Configuration': 'Asset Configuration', 'operational_days': 'Operational Days'}
             )
             fig.update_layout(xaxis_tickangle=-30)
             st.plotly_chart(fig, use_container_width=True)
 
-            stats = filtered.groupby(['asset_type', 'rpm_range'])['operational_days'].agg(
+            stats = filtered.groupby(
+                ['industry_type', 'machine_type', 'bearing_make', 'rpm_range']
+            )['operational_days'].agg(
                 count='count', mean='mean', median='median', std='std'
             ).reset_index()
-            st.dataframe(stats.rename(columns={'mean': 'Avg', 'median': 'Median', 'std': 'Std Dev', 'count': 'Samples'}))
+            st.dataframe(stats.rename(columns={
+                'mean': 'Avg', 'median': 'Median', 'std': 'Std Dev', 'count': 'Samples',
+                'industry_type': 'Industry', 'machine_type': 'Machine', 'bearing_make': 'Make'
+            }))
 
 # --- Tab 2 ---
 with tab2:

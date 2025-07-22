@@ -22,17 +22,34 @@ def load_data():
 
     def rpm_bucket(rpm):
         if pd.isna(rpm):
-            return "Unknown"
-        elif rpm < 500:
-            return "Low"
+            return ""
+        elif rpm < 200:
+            return "(0-200)"
+        elif rpm < 900:
+            return "(200-900)"
         elif rpm < 1500:
-            return "Medium"
+            return "(900-1500)"
         else:
-            return "High"
+            return "(1500+)"
     df['rpm_range'] = df['rpm_min'].apply(rpm_bucket)
     return df.dropna(subset=['operational_days'])
 
 df = load_data()
+
+# --- Helper: Multiselect with 'All' ---
+def multiselect_with_all(label, options, default=None):
+    all_label = "All"
+    options = sorted(set(options))
+    options_with_all = [all_label] + options
+
+    if default is None:
+        default = [all_label]
+
+    selected = st.multiselect(label, options_with_all, default=default)
+
+    if all_label in selected:
+        return options
+    return selected
 
 # --- Filters ---
 st.subheader("Select Operating Conditions")
@@ -40,26 +57,26 @@ st.subheader("Select Operating Conditions")
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    industries = sorted(df['industry_type'].dropna().unique())
-    selected_industry = st.selectbox("Industry", industries)
+    all_industries = df['industry_type'].dropna().unique()
+    selected_industries = multiselect_with_all("Select Industry Type(s)", all_industries)
 
 with col2:
-    machines = sorted(df[df['industry_type'] == selected_industry]['machine_type'].dropna().unique())
-    selected_machine = st.selectbox("Machine Type", ["All"] + machines)
+    filtered_machines_df = df[df['industry_type'].isin(selected_industries)]
+    all_machines = filtered_machines_df['machine_type'].dropna().unique()
+    selected_machines = multiselect_with_all("Select Machine Type(s)", all_machines)
 
 with col3:
-    rpms = sorted(df['rpm_range'].dropna().unique())
-    selected_rpm = st.selectbox("RPM Range", ["All"] + rpms)
+    all_rpms = df['rpm_range'].dropna().unique()
+    selected_rpms = multiselect_with_all("Select RPM Range(s)", all_rpms)
 
 # --- Filter Data ---
-filtered_df = df[df['industry_type'] == selected_industry]
+filtered_df = df[
+    (df['industry_type'].isin(selected_industries)) &
+    (df['machine_type'].isin(selected_machines)) &
+    (df['rpm_range'].isin(selected_rpms))
+]
 
-if selected_machine != "All":
-    filtered_df = filtered_df[filtered_df['machine_type'] == selected_machine]
-
-if selected_rpm != "All":
-    filtered_df = filtered_df[filtered_df['rpm_range'] == selected_rpm]
-
+# --- Analysis ---
 if filtered_df.empty:
     st.warning("No matching data found for the selected conditions.")
 else:
