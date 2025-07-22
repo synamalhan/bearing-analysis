@@ -17,12 +17,14 @@ def load_data():
     def rpm_bucket(rpm):
         if pd.isna(rpm):
             return "Unknown"
-        elif rpm < 500:
-            return "Low"
+        elif rpm < 200:
+            return "below 200"
+        elif rpm < 900:
+            return "below 900"
         elif rpm < 1500:
-            return "Medium"
+            return "below 1500"
         else:
-            return "High"
+            return "above 1500"
     df['rpm_range'] = df['rpm_min'].apply(rpm_bucket)
     return df.dropna(subset=['operational_days'])
 
