@@ -89,7 +89,7 @@ st.write(f"**Failure without Lubrication**: {round(100 * not_lubed_failures / to
 
 # --- Average days between lube and failure ---
 avg_days = case_df[case_df["lubed_before_fail"] == True]["days_between"].mean()
-st.markdown(f"### Avg. Days Between Last Lube and Failure: `{round(avg_days, 1)} days`")
+st.markdown(f"### Median Days Between Last Lube and Failure: `{round(avg_days, 1)} days`")
 
 # --- Plot: Lubed vs Not Lubed Failure Count ---
 count_plot = case_df["lubed_before_fail"].value_counts().reset_index()
