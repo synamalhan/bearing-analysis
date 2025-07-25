@@ -104,7 +104,13 @@ question_groups = {
       "q": "Q18. Do certain industries experience more frequent high-RPM failures than others?",
       "page": "pages/Q18.py",
       "desc": "Explore operational stress by comparing RPM and failure frequency by sector."
-    }
+    },
+    {
+  "q": "Q19. When do bearing clearance issues occur, and how does lubrication affect this?",
+  "page": "pages/Q19.py",
+  "desc": "Explore expected failure timelines for clearance issues, segmented by RPM, industry, bearing make/type, and lubrication presence."
+}
+
   ]
 }
 
