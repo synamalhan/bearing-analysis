@@ -19,13 +19,52 @@ This analysis investigates the **time to failure** for *bearing clearance issues
 @st.cache_data
 def load_data():
     df = pd.read_excel("data/Cleaned_Bearing_Dataset.xlsx", parse_dates=["subscription_start", "timestamp_of_fault"])
-    df = df[df["bearing_severity_class"] == 2]
     df = df[df["timestamp_of_fault"].notna() & df["subscription_start"].notna()]
-    df["time_to_failure_days"] = (df["timestamp_of_fault"] - df["subscription_start"]).dt.days
-    df = df[df["time_to_failure_days"] > 0]
+    df = df[df["bearing_severity_class"].isin([1, 2])]
+
     df["rpm_bucket"] = pd.cut(df["rpm_max"], bins=[0, 1000, 3000, 6000, 10000], labels=["Low", "Medium", "High", "Very High"])
-    df["lubrication_condition"] = df["lubrication_type"].fillna("Unknown").apply(lambda x: "Without Lubrication" if x.strip().lower() in ["not available", "none", "na", "unknown"] else "With Lubrication")
-    return df
+    df["bearing_key"] = df["bearing_type_assigned_1"].astype(str) + "|" + \
+                        df["bearing_make"].astype(str) + "|" + \
+                        df["industry_type"].astype(str) + "|" + \
+                        df["monitor_id"].astype(str)
+
+    # Split into class 1 and class 2 events
+    class1 = df[df["bearing_severity_class"] == 1][["bearing_key", "subscription_start"]].copy()
+    class2 = df[df["bearing_severity_class"] == 2].copy()
+
+    # Merge class2 with latest class1 before it (if any)
+    merged = pd.merge_asof(
+        class2.sort_values("timestamp_of_fault"),
+        class1.sort_values("subscription_start"),
+        by="bearing_key",
+        left_on="timestamp_of_fault",
+        right_on="subscription_start",
+        direction="backward",
+        allow_exact_matches=True
+    )
+
+        # Determine lubrication condition more precisely
+    def determine_lubrication(row):
+        if pd.notna(row["subscription_start_y"]) and str(row["lubrication_type"]).strip().lower() != "not available":
+            return "Without Lubrication"
+        else:
+            return "With Lubrication"
+
+    merged["lubrication_condition"] = merged.apply(determine_lubrication, axis=1)
+
+
+    # Time to failure logic
+    merged["time_to_failure_days"] = (merged["timestamp_of_fault"] - merged["subscription_start_y"].fillna(merged["subscription_start_x"])).dt.days
+
+    # Rename columns back for clarity
+    merged.rename(columns={
+        "subscription_start_x": "subscription_start",
+        "subscription_start_y": "lubricated_from_subscription"
+    }, inplace=True)
+
+    return merged
+
+
 
 df = load_data()
 
