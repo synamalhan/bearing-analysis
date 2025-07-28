@@ -109,6 +109,11 @@ question_groups = {
   "q": "Q19. When do bearing clearance issues occur, and how does lubrication affect this?",
   "page": "pages/Q19.py",
   "desc": "Explore expected failure timelines for clearance issues, segmented by RPM, industry, bearing make/type, and lubrication presence."
+},
+{
+  "q": "Q20. Bearing Make comparison across asset types",
+  "page": "pages/Q20.py",
+  "desc": "Compare bearing makes across different asset types to identify performance trends and reliability."
 }
 
   ]
