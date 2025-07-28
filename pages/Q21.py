@@ -2,17 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="Q19: Bearing Clearance Timing", layout="wide")
+st.set_page_config(page_title="Q21: Bearing Failure Timing by Designation", layout="wide")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
-st.title("Q19: When Do Bearing Clearance Issues Occur?")
+st.title("Q21: Bearing Failure Timing Analysis by Designation")
 
 st.markdown("""
-This analysis investigates the **time to failure** for *bearing clearance issues* (`bearing_severity_class == 2`), segmented across:
+This analysis explores **time to failure** for *bearing clearance issues* (`bearing_severity_class == 2`), segmented by:
 
 - Industry type
 - RPM bucket
 - Bearing make
 - Bearing type
+- Bearing designation
 - Lubrication condition (including **absence of lubrication**)
 """)
 
@@ -28,11 +29,9 @@ def load_data():
                         df["industry_type"].astype(str) + "|" + \
                         df["monitor_id"].astype(str)
 
-    # Split into class 1 and class 2 events
     class1 = df[df["bearing_severity_class"] == 1][["bearing_key", "subscription_start"]].copy()
     class2 = df[df["bearing_severity_class"] == 2].copy()
 
-    # Merge class2 with latest class1 before it (if any)
     merged = pd.merge_asof(
         class2.sort_values("timestamp_of_fault"),
         class1.sort_values("subscription_start"),
@@ -43,7 +42,6 @@ def load_data():
         allow_exact_matches=True
     )
 
-        # Determine lubrication condition more precisely
     def determine_lubrication(row):
         if pd.notna(row["subscription_start_y"]) and str(row["lubrication_type"]).strip().lower() != "not available":
             return "Without Lubrication"
@@ -51,12 +49,8 @@ def load_data():
             return "With Lubrication"
 
     merged["lubrication_condition"] = merged.apply(determine_lubrication, axis=1)
-
-
-    # Time to failure logic
     merged["time_to_failure_days"] = (merged["timestamp_of_fault"] - merged["subscription_start_y"].fillna(merged["subscription_start_x"])).dt.days
 
-    # Rename columns back for clarity
     merged.rename(columns={
         "subscription_start_x": "subscription_start",
         "subscription_start_y": "lubricated_from_subscription"
@@ -64,21 +58,20 @@ def load_data():
 
     return merged
 
-
-
 df = load_data()
 
-# Column layout
-col1, col2, col3, col4, col5 = st.columns(5)
+# --- Filters layout ---
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-# --- Define filter options with "All" ---
+# --- Dropdown options with "All" ---
 all_industries = ["All"] + sorted(df["industry_type"].dropna().unique())
 all_rpms = ["All"] + df["rpm_bucket"].dropna().unique().tolist()
 all_makes = ["All"] + sorted(df["bearing_make"].dropna().unique())
 all_types = ["All"] + sorted(df["bearing_type_assigned_1"].dropna().unique())
 all_lubes = ["All"] + ["With Lubrication", "Without Lubrication"]
+all_designations = ["All"] + sorted(df["designation_brg"].dropna().unique())
 
-# --- Capture filter selections ---
+# --- User selections ---
 with col1:
     selected_industry = st.multiselect("Industry", all_industries, default=["All"])
 with col2:
@@ -89,8 +82,10 @@ with col4:
     selected_type = st.multiselect("Bearing Type", all_types, default=["All"])
 with col5:
     selected_lube = st.multiselect("Lubrication", all_lubes, default=["All"])
+with col6:
+    selected_designation = st.multiselect("Bearing Designation", all_designations, default=["All"])
 
-# --- Apply logic: treat "All" as selecting everything ---
+# --- Apply filters ---
 def filter_with_all(df, column, selected_values):
     if "All" in selected_values or not selected_values:
         return df
@@ -102,12 +97,13 @@ df_filtered = filter_with_all(df_filtered, "rpm_bucket", selected_rpm)
 df_filtered = filter_with_all(df_filtered, "bearing_make", selected_make)
 df_filtered = filter_with_all(df_filtered, "bearing_type_assigned_1", selected_type)
 df_filtered = filter_with_all(df_filtered, "lubrication_condition", selected_lube)
+df_filtered = filter_with_all(df_filtered, "designation_brg", selected_designation)
 
 if df_filtered.empty:
     st.warning("No records match the selected filters.")
     st.stop()
 
-# --- Lubrication Impact Chart ---
+# --- Chart 1: Lubrication Impact ---
 st.markdown("### Lubrication Impact on Failure Timing")
 lube_chart = df_filtered.groupby("lubrication_condition")["time_to_failure_days"].agg(["count", "mean", "median"]).reset_index()
 lube_chart.rename(columns={"count": "Failure Count", "mean": "Mean Days", "median": "Median Days"}, inplace=True)
@@ -117,32 +113,38 @@ fig = px.bar(
     x="lubrication_condition",
     y="Mean Days",
     color="lubrication_condition",
-    title="Average Time to Failure: With vs. Without Lubrication",
     text="Failure Count",
+    title="Avg. Time to Failure: With vs. Without Lubrication",
     labels={"lubrication_condition": "Lubrication Condition", "Mean Days": "Avg. Time to Failure (days)"}
 )
 st.plotly_chart(fig, use_container_width=True)
-# --- Expanders for Detailed View ---
+
+# --- Expanders ---
 st.markdown("### Detailed Records by Lubrication Condition")
 
-# Separate data by lubrication condition
 with_lube_df = df_filtered[df_filtered["lubrication_condition"] == "With Lubrication"]
 without_lube_df = df_filtered[df_filtered["lubrication_condition"] == "Without Lubrication"]
 
 with st.expander("With Lubrication Entries"):
-    st.write("These entries had a recorded lubrication before the failure event.")
-    cols_to_show = ["monitor_id", "bearing_make", "bearing_type_assigned_1", "industry_type",
-                    "rpm_bucket", "lubrication_type", "lubricated_from_subscription", 
-                    "timestamp_of_fault", "time_to_failure_days"]
-    st.dataframe(with_lube_df[cols_to_show].sort_values("timestamp_of_fault"))
+    st.write("Entries where lubrication was recorded before the failure.")
+    st.dataframe(
+        with_lube_df[[
+            "monitor_id", "bearing_make", "bearing_type_assigned_1", "designation_brg", "industry_type",
+            "rpm_bucket", "lubrication_type", "lubricated_from_subscription",
+            "timestamp_of_fault", "time_to_failure_days"
+        ]].sort_values("timestamp_of_fault")
+    )
 
 with st.expander("Without Lubrication Entries"):
-    st.write("These entries did not have lubrication records prior to the fault.")
-    cols_to_show = ["monitor_id", "bearing_make", "bearing_type_assigned_1", "industry_type",
-                    "rpm_bucket", "lubrication_type", "timestamp_of_fault", "time_to_failure_days"]
-    st.dataframe(without_lube_df[cols_to_show].sort_values("timestamp_of_fault"))
+    st.write("Entries with no recorded lubrication before failure.")
+    st.dataframe(
+        without_lube_df[[
+            "monitor_id", "bearing_make", "bearing_type_assigned_1", "designation_brg", "industry_type",
+            "rpm_bucket", "lubrication_type", "timestamp_of_fault", "time_to_failure_days"
+        ]].sort_values("timestamp_of_fault")
+    )
 
-# --- Distribution Box Plot ---
+# --- Chart 2: Boxplot ---
 st.markdown("### Time to Failure Distribution by Lubrication Type")
 box_fig = px.box(
     df_filtered,
@@ -154,7 +156,7 @@ box_fig = px.box(
 )
 st.plotly_chart(box_fig, use_container_width=True)
 
-# --- Mean Time to Failure by Make and Lubrication ---
+# --- Chart 3: Bar by Make and Lubrication ---
 st.markdown("### Mean Time to Failure by Lubrication and Bearing Make")
 bar_fig = px.bar(
     df_filtered.groupby(["lubrication_type", "bearing_make"])["time_to_failure_days"].mean().reset_index(),
@@ -167,7 +169,7 @@ bar_fig = px.bar(
 )
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# --- Faceted Plot by Industry and RPM ---
+# --- Chart 4: Facet by Industry and RPM ---
 st.markdown("### Faceted Time to Failure by Industry, RPM, and Lubrication")
 facet_fig = px.box(
     df_filtered,
