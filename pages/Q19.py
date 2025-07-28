@@ -58,13 +58,15 @@ with col5:
     selected_designation = st.selectbox("Fix Bearing Designation", all_designations)
 
 # --- Apply filters ---
+# --- Apply filters ---
 df_filtered = df[
     (df["designation_brg"] == selected_designation) &
-    (df["industry_type"].isin([selected_industry]) if selected_industry != "All" else True) &
-    (df["machine_type"].isin([selected_machine]) if selected_machine != "All" else True) &
-    (df["lubrication_method"].isin([selected_lube]) if selected_lube != "All" else True) &
-    (df["rpm_bucket"].isin([selected_rpm]) if selected_rpm != "All" else True)
+    (df["industry_type"].isin(selected_industry)) &
+    (df["machine_type"].isin(selected_machine)) &
+    (df["lubrication_method"].isin(selected_lube)) &
+    (df["rpm_bucket"].isin(selected_rpm))
 ]
+
 
 if df_filtered.empty:
     st.warning("No records match the selected filters.")
