@@ -5,15 +5,15 @@ import plotly.express as px
 st.set_page_config(page_title="Q19: Bearing Clearance Timing", layout="wide")
 st.markdown("<a href='/' style='text-decoration:none;'>&larr; Back to Home</a>", unsafe_allow_html=True)
 st.title("Q19: When Do Bearing Clearance Issues Occur?")
+
 st.markdown("""
 This analysis investigates the **time to failure** for *bearing clearance issues* (`bearing_severity_class == 2`), segmented across:
 
 - Industry type
 - RPM bucket
-- Bearing type
 - Bearing make
+- Bearing type
 - Lubrication condition (including **absence of lubrication**)
-
 """)
 
 @st.cache_data
@@ -22,65 +22,54 @@ def load_data():
     df = df[df["bearing_severity_class"] == 2]
     df = df[df["timestamp_of_fault"].notna() & df["subscription_start"].notna()]
     df["time_to_failure_days"] = (df["timestamp_of_fault"] - df["subscription_start"]).dt.days
-    df = df[df["time_to_failure_days"] > 0]  # Remove invalid durations
+    df = df[df["time_to_failure_days"] > 0]
     df["rpm_bucket"] = pd.cut(df["rpm_max"], bins=[0, 1000, 3000, 6000, 10000], labels=["Low", "Medium", "High", "Very High"])
-
-    # Normalize lubrication labels
     df["lubrication_condition"] = df["lubrication_type"].fillna("Unknown").apply(lambda x: "Without Lubrication" if x.strip().lower() in ["not available", "none", "na", "unknown"] else "With Lubrication")
-    
     return df
 
 df = load_data()
 
-if df.empty:
-    st.warning("No bearing clearance records with valid timestamps found.")
-    st.stop()
-
-# --- Sidebar Filters ---
+# Column layout
 col1, col2, col3, col4, col5 = st.columns(5)
 
-industry_options = sorted(df["industry_type"].dropna().unique())
-rpm_options = df["rpm_bucket"].dropna().unique()
-type_options = sorted(df["bearing_type_assigned_1"].dropna().unique())
-make_options = sorted(df["bearing_make"].dropna().unique())
-lube_conditions = ["With Lubrication", "Without Lubrication"]
+# --- Define filter options with "All" ---
+all_industries = ["All"] + sorted(df["industry_type"].dropna().unique())
+all_rpms = ["All"] + df["rpm_bucket"].dropna().unique().tolist()
+all_makes = ["All"] + sorted(df["bearing_make"].dropna().unique())
+all_types = ["All"] + sorted(df["bearing_type_assigned_1"].dropna().unique())
+all_lubes = ["All"] + ["With Lubrication", "Without Lubrication"]
 
+# --- Capture filter selections ---
 with col1:
-    selected_industries = st.multiselect("Industry", industry_options, default=industry_options)
+    selected_industry = st.multiselect("Industry", all_industries, default=["All"])
 with col2:
-    selected_rpms = st.multiselect("RPM Bucket", list(rpm_options), default=list(rpm_options))
+    selected_rpm = st.multiselect("RPM Bucket", all_rpms, default=["All"])
 with col3:
-    selected_types = st.multiselect("Bearing Type", type_options, default=type_options)
+    selected_make = st.multiselect("Bearing Make", all_makes, default=["All"])
 with col4:
-    selected_makes = st.multiselect("Bearing Make", make_options, default=make_options)
+    selected_type = st.multiselect("Bearing Type", all_types, default=["All"])
 with col5:
-    selected_lubes = st.multiselect("Lubrication Condition", lube_conditions, default=lube_conditions)
+    selected_lube = st.multiselect("Lubrication", all_lubes, default=["All"])
 
-# --- Filtered Dataset ---
-df_filtered = df[
-    (df["industry_type"].isin(selected_industries)) &
-    (df["rpm_bucket"].isin(selected_rpms)) &
-    (df["bearing_type_assigned_1"].isin(selected_types)) &
-    (df["bearing_make"].isin(selected_makes)) &
-    (df["lubrication_condition"].isin(selected_lubes))
-]
+# --- Apply logic: treat "All" as selecting everything ---
+def filter_with_all(df, column, selected_values):
+    if "All" in selected_values or not selected_values:
+        return df
+    return df[df[column].isin(selected_values)]
+
+df_filtered = df.copy()
+df_filtered = filter_with_all(df_filtered, "industry_type", selected_industry)
+df_filtered = filter_with_all(df_filtered, "rpm_bucket", selected_rpm)
+df_filtered = filter_with_all(df_filtered, "bearing_make", selected_make)
+df_filtered = filter_with_all(df_filtered, "bearing_type_assigned_1", selected_type)
+df_filtered = filter_with_all(df_filtered, "lubrication_condition", selected_lube)
 
 if df_filtered.empty:
     st.warning("No records match the selected filters.")
     st.stop()
 
-# # --- Summary Table ---
-# summary = df_filtered.groupby(
-#     ["industry_type", "rpm_bucket", "bearing_type_assigned_1", "bearing_make", "lubrication_condition"]
-# )["time_to_failure_days"].agg(["count", "mean", "median"]).reset_index()
-
-# summary.columns = ["Industry", "RPM", "Bearing Type", "Make", "Lubrication", "Failures", "Mean Days", "Median Days"]
-# st.markdown("### Failure Timing Summary for Bearing Clearance")
-# st.dataframe(summary, use_container_width=True)
-
-# --- Lubrication Comparison Chart ---
+# --- Lubrication Impact Chart ---
 st.markdown("### Lubrication Impact on Failure Timing")
-
 lube_chart = df_filtered.groupby("lubrication_condition")["time_to_failure_days"].agg(["count", "mean", "median"]).reset_index()
 lube_chart.rename(columns={"count": "Failure Count", "mean": "Mean Days", "median": "Median Days"}, inplace=True)
 
@@ -95,7 +84,8 @@ fig = px.bar(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("### Time to Failure Distribution by Lubrication Condition")
+# --- Distribution Box Plot ---
+st.markdown("### Time to Failure Distribution by Lubrication Type")
 box_fig = px.box(
     df_filtered,
     x="lubrication_type",
@@ -106,7 +96,7 @@ box_fig = px.box(
 )
 st.plotly_chart(box_fig, use_container_width=True)
 
-# Mean Failure Time by Lubrication + Bearing Make
+# --- Mean Time to Failure by Make and Lubrication ---
 st.markdown("### Mean Time to Failure by Lubrication and Bearing Make")
 bar_fig = px.bar(
     df_filtered.groupby(["lubrication_type", "bearing_make"])["time_to_failure_days"].mean().reset_index(),
@@ -119,7 +109,7 @@ bar_fig = px.bar(
 )
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# Optional: Industry + Lubrication + RPM
+# --- Faceted Plot by Industry and RPM ---
 st.markdown("### Faceted Time to Failure by Industry, RPM, and Lubrication")
 facet_fig = px.box(
     df_filtered,
