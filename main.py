@@ -119,7 +119,7 @@ question_groups = {
 {
   "q": "Q21. When do bearing clearance issues occur, and how does lubrication affect this?",
   "page": "pages/Q21.py",
-  "desc": "Explore expected failure timelines for clearance issues, segmented by RPM, industry, bearing make/type, and lubrication presence."
+  "desc": "Explore expected failure timelines for clearance issues, segmented by RPM, industry, bearing make/type, designation and lubrication presence."
 },
 
   ]
