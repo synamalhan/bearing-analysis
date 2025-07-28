@@ -34,27 +34,28 @@ df = load_data()
 # --- Filters ---
 st.subheader("Filter Parameters")
 
+def multiselect_with_all(label, options):
+    options = ["All"] + sorted([opt for opt in options if pd.notna(opt)])
+    selected = st.multiselect(label, options, default=["All"])
+    if "All" in selected:
+        return options[1:]  # exclude "All" from result
+    return selected
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    industry_options = ["All"] + sorted(df["industry_type"].dropna().unique().tolist())
-    selected_industry = st.selectbox("Industry Type", industry_options)
-
+    selected_industry = multiselect_with_all("Industry Type", df["industry_type"].unique())
 with col2:
-    machine_options = ["All"] + sorted(df["machine_type"].dropna().unique().tolist())
-    selected_machine = st.selectbox("Machine Type", machine_options)
-
+    selected_machine = multiselect_with_all("Machine Type", df["machine_type"].unique())
 with col3:
-    lube_options = ["All"] + sorted(df["lubrication_method"].dropna().unique().tolist())
-    selected_lube = st.selectbox("Lubrication Method", lube_options)
-
+    selected_lube = multiselect_with_all("Lubrication Method", df["lubrication_method"].unique())
 with col4:
-    rpm_options = ["All"] + list(df["rpm_bucket"].dropna().unique())
-    selected_rpm = st.selectbox("RPM Bucket", rpm_options)
+    selected_rpm = multiselect_with_all("RPM Bucket", df["rpm_bucket"].unique())
 
 col5, col6 = st.columns([1, 2])
 with col5:
-    selected_designation = st.selectbox("Fix Bearing Designation", sorted(df["designation_brg"].dropna().unique()))
+    all_designations = sorted(df["designation_brg"].dropna().unique())
+    selected_designation = st.selectbox("Fix Bearing Designation", all_designations)
 
 # --- Apply filters ---
 df_filtered = df[
