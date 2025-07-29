@@ -44,9 +44,9 @@ def load_data():
 
     def determine_lubrication(row):
         if pd.notna(row["subscription_start_y"]) and str(row["lubrication_type"]).strip().lower() != "not available":
-            return "Without Lubrication"
-        else:
             return "With Lubrication"
+        else:
+            return "Without Lubrication"
 
     merged["lubrication_condition"] = merged.apply(determine_lubrication, axis=1)
     merged["time_to_failure_days"] = (merged["timestamp_of_fault"] - merged["subscription_start_y"].fillna(merged["subscription_start_x"])).dt.days
@@ -63,7 +63,6 @@ df = load_data()
 # --- Filters layout ---
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-# --- Dropdown options with "All" ---
 all_industries = ["All"] + sorted(df["industry_type"].dropna().unique())
 all_rpms = ["All"] + df["rpm_bucket"].dropna().unique().tolist()
 all_makes = ["All"] + sorted(df["bearing_make"].dropna().unique())
@@ -71,7 +70,6 @@ all_types = ["All"] + sorted(df["bearing_type_assigned_1"].dropna().unique())
 all_lubes = ["All"] + ["With Lubrication", "Without Lubrication"]
 all_designations = ["All"] + sorted(df["designation_brg"].dropna().unique())
 
-# --- User selections ---
 with col1:
     selected_industry = st.multiselect("Industry", all_industries, default=["All"])
 with col2:
@@ -85,7 +83,6 @@ with col5:
 with col6:
     selected_designation = st.multiselect("Bearing Designation", all_designations, default=["All"])
 
-# --- Apply filters ---
 def filter_with_all(df, column, selected_values):
     if "All" in selected_values or not selected_values:
         return df
@@ -105,17 +102,17 @@ if df_filtered.empty:
 
 # --- Chart 1: Lubrication Impact ---
 st.markdown("### Lubrication Impact on Failure Timing")
-lube_chart = df_filtered.groupby("lubrication_condition")["time_to_failure_days"].agg(["count", "mean", "median"]).reset_index()
-lube_chart.rename(columns={"count": "Failure Count", "mean": "Mean Days", "median": "Median Days"}, inplace=True)
+lube_chart = df_filtered.groupby("lubrication_condition")["time_to_failure_days"].agg(["count", "median"]).reset_index()
+lube_chart.rename(columns={"count": "Failure Count", "median": "Median Days"}, inplace=True)
 
 fig = px.bar(
     lube_chart,
     x="lubrication_condition",
-    y="Mean Days",
+    y="Median Days",
     color="lubrication_condition",
     text="Failure Count",
-    title="Avg. Time to Failure: With vs. Without Lubrication",
-    labels={"lubrication_condition": "Lubrication Condition", "Mean Days": "Avg. Time to Failure (days)"}
+    title="Median Time to Failure: With vs. Without Lubrication",
+    labels={"lubrication_condition": "Lubrication Condition", "Median Days": "Median Time to Failure (days)"}
 )
 st.plotly_chart(fig, use_container_width=True)
 
@@ -144,7 +141,7 @@ with st.expander("Without Lubrication Entries"):
         ]].sort_values("timestamp_of_fault")
     )
 
-# --- Chart 2: Boxplot ---
+# --- Chart 2: Boxplot by Lubrication Type ---
 st.markdown("### Time to Failure Distribution by Lubrication Type")
 box_fig = px.box(
     df_filtered,
@@ -156,21 +153,23 @@ box_fig = px.box(
 )
 st.plotly_chart(box_fig, use_container_width=True)
 
-# --- Chart 3: Bar by Make and Lubrication ---
-st.markdown("### Mean Time to Failure by Lubrication and Bearing Make")
+# --- Chart 3: Median by Lubrication and Bearing Make ---
+st.markdown("### Median Time to Failure by Lubrication and Bearing Make")
+median_by_make_lube = df_filtered.groupby(["lubrication_type", "bearing_make"])["time_to_failure_days"].median().reset_index()
+
 bar_fig = px.bar(
-    df_filtered.groupby(["lubrication_type", "bearing_make"])["time_to_failure_days"].mean().reset_index(),
+    median_by_make_lube,
     x="bearing_make",
     y="time_to_failure_days",
     color="lubrication_type",
     barmode="group",
-    title="Mean Time to Failure Grouped by Lubrication and Make",
-    labels={"time_to_failure_days": "Mean Time to Failure (Days)", "bearing_make": "Bearing Make"},
+    title="Median Time to Failure Grouped by Lubrication and Make",
+    labels={"time_to_failure_days": "Median Time to Failure (Days)", "bearing_make": "Bearing Make"},
 )
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# --- Chart 4: Facet by Industry and RPM ---
-st.markdown("### Faceted Time to Failure by Industry, RPM, and Lubrication")
+# --- Chart 4: Faceted by Industry and RPM ---
+st.markdown("### Faceted Median Failure Time by Industry, RPM, and Lubrication")
 facet_fig = px.box(
     df_filtered,
     x="rpm_bucket",
@@ -181,3 +180,50 @@ facet_fig = px.box(
     labels={"time_to_failure_days": "Failure Time (Days)", "rpm_bucket": "RPM Bucket"},
 )
 st.plotly_chart(facet_fig, use_container_width=True)
+
+# --- Binary Decision Tree: Industry → Machine Type → Lubrication Condition ---
+st.markdown("## Binary Rule Tree: Lubrication Interval by Machine Type")
+
+# Filter only valid entries
+tree_df = df_filtered.copy()
+tree_df = tree_df[~tree_df["machine_type"].isna() & ~tree_df["industry_type"].isna()]
+
+# Only keep groups with at least 5 samples
+valid_groups = tree_df.groupby(["industry_type", "machine_type"]).filter(lambda x: len(x) >= 5)
+
+# Get sorted industries and divide into chunks of 3
+industries = sorted(valid_groups["industry_type"].unique())
+industry_chunks = [industries[i:i+3] for i in range(0, len(industries), 3)]
+
+for chunk in industry_chunks:
+    cols = st.columns(len(chunk))  # Create 1 to 3 columns depending on chunk size
+    
+    for idx, industry in enumerate(chunk):
+        with cols[idx]:
+            st.markdown(f"### Industry: `{industry}`")
+            industry_df = valid_groups[valid_groups["industry_type"] == industry]
+            machines = sorted(industry_df["machine_type"].unique())
+
+            for machine in machines:
+                machine_df = industry_df[industry_df["machine_type"] == machine]
+                n = len(machine_df)
+
+                st.markdown(f"#### Machine: `{machine}` (n={n})")
+
+                # Lubrication = Without
+                no_lube = machine_df[machine_df["lubrication_condition"] == "Without Lubrication"]
+                yes_lube = machine_df[machine_df["lubrication_condition"] == "With Lubrication"]
+
+                # Branch 1: Without Lubrication
+                if len(no_lube) >= 1:
+                    median_days = int(no_lube["time_to_failure_days"].median())
+                    st.markdown(f"- **Without Lubrication** (n={len(no_lube)}): Lubricate every **≤ {median_days} days** ⏳")
+                else:
+                    st.markdown(f"- **Without Lubrication**: _Insufficient data_")
+
+                # Branch 2: With Lubrication
+                if len(yes_lube) >= 1:
+                    median_yes = int(yes_lube["time_to_failure_days"].median())
+                    st.markdown(f"- **With Lubrication** (n={len(yes_lube)}): Failures occur after ~**{median_yes} days** 🛡️")
+                else:
+                    st.markdown(f"- **With Lubrication**: _Insufficient data_")

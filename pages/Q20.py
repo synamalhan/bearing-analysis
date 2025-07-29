@@ -34,7 +34,68 @@ def load_data():
 
     return df
 
+# -------------------
+# Machine Categorization
+# -------------------
+def get_machine_category(new_doc):
+    if new_doc in ['Agitator - Agitator']:
+        category = 'agitator'
+    elif new_doc in ['Alternator - Alternator']:
+        category = 'alternator'
+    elif new_doc in ['Blower - Blower', 'Blower - Root Blower', 'Blower - Screw Blower',
+                     'Fan - Axial Fan', 'Fan - Centrifugal Fan(Double Suction)',
+                     'Fan - Centrifugal Fan(Single Suction)', 'Fan - Over Hung Fan']:
+        category = 'blower'
+    elif new_doc in ['Compressor - Centrifugal Compressor', 'Compressor - Reciprocating Compressor',
+                     'Compressor - Screw Compressor']:
+        category = 'compressor'
+    elif new_doc in ['Conveyor - Belt Conveyor', 'Conveyor - Bucket Elevator', 'Conveyor - Chain Conveyor',
+                     'Conveyor - Pan Conveyor']:
+        category = 'conveyor'
+    elif new_doc in ['Crusher - Cone Crusher', 'Crusher - Hammer Crusher', 'Crusher - Jaw Crusher']:
+        category = 'crusher'
+    elif new_doc in ['Dryer Cylinder']:
+        category = 'dryer_cylinder'
+    elif new_doc in ['Engine - 2 Stroke IC Engine', 'Engine - 4 Stroke IC Engine', 'Engine - 5 Stroke IC Engine']:
+        category = "ic_engine"
+    elif new_doc in ['Extruder - Extruder']:
+        category = "extruder"
+    elif new_doc in ['Gearbox - Bevel Gearbox', 'Gearbox - Helical Gearbox', 'Gearbox - Planetary Gearbox',
+                     'Gearbox - Worm Gearbox']:
+        category = "gearbox"
+    elif new_doc in ['Pinion - Pinion']:
+        category = "pinion"
+    elif new_doc in ['Generator - Diesel Generator', 'Generator - Steam Driven Generator']:
+        category = "generator"
+    elif new_doc in ['Mill - Ball Mill', 'Mill - Pinion', 'Mill - Roller Press', 'Mill - Vertical Roller Mill']:
+        category = "mill"
+    elif new_doc in ['Mixer - Mixer']:
+        category = "mixer"
+    elif new_doc in ['Motor - AC Motor', 'Motor - DC Motor', 'Motor - Hydraulic Motor', 'Motor - Servo Motor']:
+        category = "motor"
+    elif new_doc in ['Pump - Centrifugal Pump (Multi Stage)', 'Pump - Centrifugal Pump (Over-Hung)',
+                     'Pump - Centrifugal Pump(Simply Supported)', 'Pump - Gear Pump', 'Pump - Monoblock',
+                     'Pump - Piston Pump', 'Pump - Reciprocating Pump', 'Pump - Screw Pump']:
+        category = "pump"
+    elif new_doc in ['Roller - Calendar Roll']:
+        category = "roll"
+    elif new_doc in ['Roll - Granulator']:
+        category = "granulator"
+    elif new_doc in ['Rope - Drum']:
+        category = "rope_drum"
+    elif new_doc in ['Spindle - Spindle']:
+        category = "spindle"
+    elif new_doc in ['Turbine - Gas Turbine', 'Turbine - Steam Turbine', 'Turbine - Wind Turbine']:
+        category = "turbine"
+    elif new_doc in ['VibroScreen - Vibro Screen']:
+        category = "vibroscreen"
+    else:
+        category = "unknown"
+    return category
+
+
 df = load_data()
+df["machine_type"] = df["machine_type"].apply(get_machine_category)
 
 # -------------------
 # Helper: Multiselect with All
