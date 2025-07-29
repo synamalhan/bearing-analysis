@@ -12,7 +12,7 @@ Analyze how various **bearing makes** perform in terms of **average life**, filt
 - Industry Type
 - Machine Type
 - Lubrication Method
-- RPM Bucket
+- RPM Range (Min/Max)
 - Bearing Severity Class
 
 The analysis is done **per designation**, which you can select below.  
@@ -32,12 +32,6 @@ def load_data():
     df["timestamp_of_fault"] = pd.to_datetime(df["timestamp_of_fault"])
     df["avg_bearing_life"] = (df["timestamp_of_fault"] - df["subscription_start"]).dt.total_seconds() / (3600 * 24)
 
-    # RPM Bucket
-    df["rpm_bucket"] = pd.cut(
-        df["rpm_max"],
-        bins=[0, 1000, 3000, 6000, 10000],
-        labels=["Low", "Medium", "High", "Very High"]
-    )
     return df
 
 df = load_data()
@@ -62,8 +56,12 @@ with col1:
     machine_filter  = multiselect_with_all_body("Machine Type", "machine_type")
     lube_filter     = multiselect_with_all_body("Lubrication Method", "lubrication_type")
 with col2:
-    rpm_filter      = multiselect_with_all_body("RPM Bucket", "rpm_bucket")
     severity_filter = multiselect_with_all_body("Bearing Severity Class", "bearing_severity_class")
+    
+    # RPM Min-Max Sliders
+    rpm_min_val = int(df["rpm_min"].min())
+    rpm_max_val = int(df["rpm_max"].max())
+    rpm_range = st.slider("RPM Range (Min to Max)", rpm_min_val, rpm_max_val, (rpm_min_val, rpm_max_val))
 
 # -------------------
 # Designation Selector
@@ -78,12 +76,13 @@ df_filtered = df[
     (df["industry_type"].isin(industry_filter)) &
     (df["machine_type"].isin(machine_filter)) &
     (df["lubrication_type"].isin(lube_filter)) &
-    (df["rpm_bucket"].isin(rpm_filter)) &
-    (df["bearing_severity_class"].isin(severity_filter))
+    (df["bearing_severity_class"].isin(severity_filter)) &
+    (df["rpm_min"] >= rpm_range[0]) &
+    (df["rpm_max"] <= rpm_range[1])
 ]
 
 if df_filtered.empty:
-    st.warning(" No data available for the selected filters and designation.")
+    st.warning("No data available for the selected filters and designation.")
 else:
     # -------------------
     # Summary Table
@@ -114,7 +113,6 @@ else:
     st.markdown("### Summary Table")
     st.dataframe(summary_df.style.format({"Mean Life (days)": "{:.1f}", "Median Life (days)": "{:.1f}"}), use_container_width=True)
 
-    
 # -------------------
 # Pivot Table: Unique Makes per Designation
 # -------------------
