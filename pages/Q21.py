@@ -16,47 +16,72 @@ This analysis explores **time to failure** for *bearing clearance issues* (`bear
 - Bearing designation
 - Lubrication condition (including **absence of lubrication**)
 """)
+import pandas as pd
+import streamlit as st
 
 @st.cache_data
 def load_data():
-    df = pd.read_excel("data/Cleaned_Bearing_Dataset.xlsx", parse_dates=["subscription_start", "timestamp_of_fault"])
-    df = df[df["timestamp_of_fault"].notna() & df["subscription_start"].notna()]
-    df = df[df["bearing_severity_class"].isin([1, 2])]
+    # Load Excel
+    df = pd.read_excel("data/Cleaned_Bearing_Dataset.xlsx", parse_dates=[
+        "subscription_start", "timestamp_of_fault"
+    ])
+    
+    # Only keep relevant severity classes
+    df = df[df["bearing_severity_class"].isin([1, 2, 3])]
+    df = df.dropna(subset=["timestamp_of_fault", "subscription_start", "monitor_id"])
+    df = df.sort_values(by=["monitor_id", "timestamp_of_fault"])
 
-    df["rpm_bucket"] = pd.cut(df["rpm_max"], bins=[0, 1000, 3000, 6000, 10000], labels=["Low", "Medium", "High", "Very High"])
-    df["bearing_key"] = df["bearing_type_assigned_1"].astype(str) + "|" + \
-                        df["bearing_make"].astype(str) + "|" + \
-                        df["industry_type"].astype(str) + "|" + \
-                        df["monitor_id"].astype(str)
+    # Step 1: Compute 'bearing_available_since' using class 3 resets
+    bearing_available_since_list = []
 
-    class1 = df[df["bearing_severity_class"] == 1][["bearing_key", "subscription_start"]].copy()
-    class2 = df[df["bearing_severity_class"] == 2].copy()
+    for monitor_id, group in df.groupby("monitor_id"):
+        last_class_3_time = None
 
-    merged = pd.merge_asof(
-        class2.sort_values("timestamp_of_fault"),
-        class1.sort_values("subscription_start"),
-        by="bearing_key",
-        left_on="timestamp_of_fault",
-        right_on="subscription_start",
-        direction="backward",
-        allow_exact_matches=True
-    )
+        for _, row in group.iterrows():
+            if row["bearing_severity_class"] == 3:
+                last_class_3_time = row["timestamp_of_fault"]
+                bearing_available_since_list.append(None)  # We'll drop class 3 rows later
+            else:
+                available_since = last_class_3_time or row["subscription_start"]
+                bearing_available_since_list.append(available_since)
 
-    def determine_lubrication(row):
-        if pd.notna(row["subscription_start_y"]) and str(row["lubrication_type"]).strip().lower() != "not available":
-            return "With Lubrication"
-        else:
-            return "Without Lubrication"
+    df["bearing_available_since"] = bearing_available_since_list
 
-    merged["lubrication_condition"] = merged.apply(determine_lubrication, axis=1)
-    merged["time_to_failure_days"] = (merged["timestamp_of_fault"] - merged["subscription_start_y"].fillna(merged["subscription_start_x"])).dt.days
+    # Drop class 3 rows (used only to determine reset point)
+    df = df[df["bearing_severity_class"].isin([1, 2])].copy()
 
-    merged.rename(columns={
-        "subscription_start_x": "subscription_start",
-        "subscription_start_y": "lubricated_from_subscription"
-    }, inplace=True)
+    
 
-    return merged
+    for monitor_id, group in df.groupby("monitor_id"):
+        class_1_rows = group[group["bearing_severity_class"] == 1]
+        class_2_rows = group[group["bearing_severity_class"] == 2]
+
+        for idx, row in class_2_rows.iterrows():
+            available_since = row["bearing_available_since"]
+            fault_time = row["timestamp_of_fault"]
+
+            # Check if any class 1 issue occurred in between
+            intervening = class_1_rows[
+                (class_1_rows["timestamp_of_fault"] > available_since) &
+                (class_1_rows["timestamp_of_fault"] < fault_time)
+            ]
+
+            if len(intervening) > 0:
+                df.loc[idx, "lubricated_from_subscription"] = "With Lubrication"
+            else:
+                df.loc[idx, "lubricated_from_subscription"] = "Without Lubrication"
+
+    # Step 3: Create RPM bucket column
+    if "rpm_min" in df.columns and "rpm_max" in df.columns:
+        df["rpm_bucket"] = df["rpm_min"].astype(str) + " to " + df["rpm_max"].astype(str)
+    else:
+        df["rpm_bucket"] = "Unknown"
+    
+    df["time_to_failure_days"] = (df["timestamp_of_fault"] - df["bearing_available_since"]).dt.days
+
+
+    return df
+
 
 df = load_data()
 
@@ -93,42 +118,41 @@ df_filtered = filter_with_all(df_filtered, "industry_type", selected_industry)
 df_filtered = filter_with_all(df_filtered, "rpm_bucket", selected_rpm)
 df_filtered = filter_with_all(df_filtered, "bearing_make", selected_make)
 df_filtered = filter_with_all(df_filtered, "bearing_type_assigned_1", selected_type)
-df_filtered = filter_with_all(df_filtered, "lubrication_condition", selected_lube)
+df_filtered = filter_with_all(df_filtered, "lubricated_from_subscription", selected_lube)
 df_filtered = filter_with_all(df_filtered, "designation_brg", selected_designation)
 
 if df_filtered.empty:
     st.warning("No records match the selected filters.")
     st.stop()
 
-# --- Chart 1: Lubrication Impact ---
+# --- Chart 1 ---
 st.markdown("### Lubrication Impact on Failure Timing")
-lube_chart = df_filtered.groupby("lubrication_condition")["time_to_failure_days"].agg(["count", "median"]).reset_index()
+lube_chart = df_filtered.groupby("lubricated_from_subscription")["time_to_failure_days"].agg(["count", "median"]).reset_index()
 lube_chart.rename(columns={"count": "Failure Count", "median": "Median Days"}, inplace=True)
 
 fig = px.bar(
     lube_chart,
-    x="lubrication_condition",
+    x="lubricated_from_subscription",
     y="Median Days",
-    color="lubrication_condition",
+    color="lubricated_from_subscription",
     text="Failure Count",
     title="Median Time to Failure: With vs. Without Lubrication",
-    labels={"lubrication_condition": "Lubrication Condition", "Median Days": "Median Time to Failure (days)"}
 )
 st.plotly_chart(fig, use_container_width=True)
 
 # --- Expanders ---
 st.markdown("### Detailed Records by Lubrication Condition")
 
-with_lube_df = df_filtered[df_filtered["lubrication_condition"] == "With Lubrication"]
-without_lube_df = df_filtered[df_filtered["lubrication_condition"] == "Without Lubrication"]
+with_lube_df = df_filtered[df_filtered["lubricated_from_subscription"] == "With Lubrication"]
+without_lube_df = df_filtered[df_filtered["lubricated_from_subscription"] == "Without Lubrication"]
 
 with st.expander("With Lubrication Entries"):
     st.write("Entries where lubrication was recorded before the failure.")
     st.dataframe(
         with_lube_df[[
             "monitor_id", "bearing_make", "bearing_type_assigned_1", "designation_brg", "industry_type",
-            "rpm_bucket", "lubrication_type", "lubricated_from_subscription",
-            "timestamp_of_fault", "time_to_failure_days"
+            "rpm_bucket", "Lubrication Method",
+            "timestamp_of_fault", "time_to_failure_days", "bearing_available_since"
         ]].sort_values("timestamp_of_fault")
     )
 
@@ -137,93 +161,132 @@ with st.expander("Without Lubrication Entries"):
     st.dataframe(
         without_lube_df[[
             "monitor_id", "bearing_make", "bearing_type_assigned_1", "designation_brg", "industry_type",
-            "rpm_bucket", "lubrication_type", "timestamp_of_fault", "time_to_failure_days"
+            "rpm_bucket", "Lubrication Method",
+            "timestamp_of_fault", "time_to_failure_days", "bearing_available_since"
         ]].sort_values("timestamp_of_fault")
     )
 
-# --- Chart 2: Boxplot by Lubrication Type ---
+# --- Boxplot by Lubrication Method ---
 st.markdown("### Time to Failure Distribution by Lubrication Type")
 box_fig = px.box(
     df_filtered,
-    x="lubrication_type",
+    x="Lubrication Method",
     y="time_to_failure_days",
-    color="lubrication_type",
+    color="Lubrication Method",
     title="Distribution of Time to Failure by Lubrication Type",
-    labels={"time_to_failure_days": "Time to Failure (Days)", "lubrication_type": "Lubrication"},
+    labels={"time_to_failure_days": "Time to Failure (Days)"},
 )
 st.plotly_chart(box_fig, use_container_width=True)
 
-# --- Chart 3: Median by Lubrication and Bearing Make ---
+# --- Median by Lubrication and Make ---
 st.markdown("### Median Time to Failure by Lubrication and Bearing Make")
-median_by_make_lube = df_filtered.groupby(["lubrication_type", "bearing_make"])["time_to_failure_days"].median().reset_index()
+median_by_make_lube = df_filtered.groupby(["Lubrication Method", "bearing_make"])["time_to_failure_days"].median().reset_index()
 
 bar_fig = px.bar(
     median_by_make_lube,
     x="bearing_make",
     y="time_to_failure_days",
-    color="lubrication_type",
+    color="Lubrication Method",
     barmode="group",
     title="Median Time to Failure Grouped by Lubrication and Make",
-    labels={"time_to_failure_days": "Median Time to Failure (Days)", "bearing_make": "Bearing Make"},
 )
 st.plotly_chart(bar_fig, use_container_width=True)
 
-# --- Chart 4: Faceted by Industry and RPM ---
+# --- Faceted box by Industry ---
 st.markdown("### Faceted Median Failure Time by Industry, RPM, and Lubrication")
 facet_fig = px.box(
     df_filtered,
     x="rpm_bucket",
     y="time_to_failure_days",
-    color="lubrication_type",
+    color="Lubrication Method",
     facet_col="industry_type",
     title="Failure Time across RPM and Industry (Faceted by Industry)",
-    labels={"time_to_failure_days": "Failure Time (Days)", "rpm_bucket": "RPM Bucket"},
 )
 st.plotly_chart(facet_fig, use_container_width=True)
 
-# --- Binary Decision Tree: Industry → Machine Type → Lubrication Condition ---
-st.markdown("## Binary Rule Tree: Lubrication Interval by Machine Type")
 
-# Filter only valid entries
-tree_df = df_filtered.copy()
-tree_df = tree_df[~tree_df["machine_type"].isna() & ~tree_df["industry_type"].isna()]
+import streamlit as st
+import pandas as pd
+import tempfile
+from pyvis.network import Network
 
-# Only keep groups with at least 5 samples
-valid_groups = tree_df.groupby(["industry_type", "machine_type"]).filter(lambda x: len(x) >= 5)
+# Sample filtering logic
+df = df_filtered.copy()
+df = df.dropna(subset=["industry_type", "machine_type", "lubricated_from_subscription", "time_to_failure_days"])
 
-# Get sorted industries and divide into chunks of 3
-industries = sorted(valid_groups["industry_type"].unique())
-industry_chunks = [industries[i:i+3] for i in range(0, len(industries), 3)]
+# Create Pyvis network with hierarchical layout
+net = Network(height="650px", width="100%", bgcolor="#222", font_color="white", directed=True)
 
-for chunk in industry_chunks:
-    cols = st.columns(len(chunk))  # Create 1 to 3 columns depending on chunk size
-    
-    for idx, industry in enumerate(chunk):
-        with cols[idx]:
-            st.markdown(f"### Industry: `{industry}`")
-            industry_df = valid_groups[valid_groups["industry_type"] == industry]
-            machines = sorted(industry_df["machine_type"].unique())
+# Enable hierarchical layout
+net.set_options("""
+{
+  "layout": {
+    "hierarchical": {
+      "enabled": true,
+      "direction": "LR",
+      "sortMethod": "directed"
+    }
+  },
+  "nodes": {
+    "shape": "dot",
+    "size": 20,
+    "font": {
+      "size": 14,
+      "face": "Tahoma"
+    }
+  },
+  "edges": {
+    "width": 2,
+    "color": {
+      "inherit": true
+    },
+    "smooth": {
+      "type": "continuous"
+    }
+  },
+  "physics": {
+    "enabled": true,
+    "hierarchicalRepulsion": {
+      "nodeDistance": 120
+    }
+  },
+  "interaction": {
+    "dragNodes": true,
+    "hover": true,
+    "tooltipDelay": 200
+  }
+}
+""")
 
-            for machine in machines:
-                machine_df = industry_df[industry_df["machine_type"] == machine]
-                n = len(machine_df)
+# Create nodes and edges
+seen = set()
+for (industry, machine, lube_status), group in df.groupby(["industry_type", "machine_type", "lubricated_from_subscription"]):
+    median_days = int(group["time_to_failure_days"].median())
+    lube_label = f"{lube_status}: ~{median_days}d"
 
-                st.markdown(f"#### Machine: `{machine}` (n={n})")
+    # Add industry node
+    if industry not in seen:
+        net.add_node(industry, label=industry, level=0)
+        seen.add(industry)
 
-                # Lubrication = Without
-                no_lube = machine_df[machine_df["lubrication_condition"] == "Without Lubrication"]
-                yes_lube = machine_df[machine_df["lubrication_condition"] == "With Lubrication"]
+    # Add machine node
+    machine_node = f"{industry}_{machine}"
+    if machine_node not in seen:
+        net.add_node(machine_node, label=machine, level=1)
+        net.add_edge(industry, machine_node)
+        seen.add(machine_node)
 
-                # Branch 1: Without Lubrication
-                if len(no_lube) >= 1:
-                    median_days = int(no_lube["time_to_failure_days"].median())
-                    st.markdown(f"- **Without Lubrication** (n={len(no_lube)}): Lubricate every **≤ {median_days} days** ⏳")
-                else:
-                    st.markdown(f"- **Without Lubrication**: _Insufficient data_")
+    # Add lubrication node
+    lube_node = f"{machine_node}_{lube_status}"
+    color = "#2ca02c" if "With" in lube_status else "#d62728"
+    net.add_node(lube_node, label=lube_label, level=2, color=color)
+    net.add_edge(machine_node, lube_node)
 
-                # Branch 2: With Lubrication
-                if len(yes_lube) >= 1:
-                    median_yes = int(yes_lube["time_to_failure_days"].median())
-                    st.markdown(f"- **With Lubrication** (n={len(yes_lube)}): Failures occur after ~**{median_yes} days** 🛡️")
-                else:
-                    st.markdown(f"- **With Lubrication**: _Insufficient data_")
+# Save graph to HTML
+with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as f:
+    net.save_graph(f.name)
+    html_content = open(f.name, "r").read()
+
+# Display in Streamlit
+st.markdown("### 🧠 Interactive Lubrication Rule Tree")
+st.components.v1.html(html_content, height=700, scrolling=True)
