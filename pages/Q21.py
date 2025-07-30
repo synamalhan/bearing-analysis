@@ -204,20 +204,21 @@ facet_fig = px.box(
 )
 st.plotly_chart(facet_fig, use_container_width=True)
 
-
 import streamlit as st
 import pandas as pd
 import tempfile
 from pyvis.network import Network
 
-# Sample filtering logic
+# Assuming `df_filtered` is your prepared dataframe
 df = df_filtered.copy()
-df = df.dropna(subset=["industry_type", "machine_type", "lubricated_from_subscription", "time_to_failure_days"])
+df = df.dropna(subset=["industry_type", "asset_type", "lubricated_from_subscription", "time_to_failure_days"])
 
-# Create Pyvis network with hierarchical layout
+# Only include "With Lubrication" entries
+df = df[df["lubricated_from_subscription"].str.lower().str.contains("with")]
+
+# Create Pyvis network
 net = Network(height="650px", width="100%", bgcolor="#222", font_color="white", directed=True)
 
-# Enable hierarchical layout
 net.set_options("""
 {
   "layout": {
@@ -247,7 +248,7 @@ net.set_options("""
   "physics": {
     "enabled": true,
     "hierarchicalRepulsion": {
-      "nodeDistance": 120
+      "nodeDistance": 140
     }
   },
   "interaction": {
@@ -258,11 +259,18 @@ net.set_options("""
 }
 """)
 
-# Create nodes and edges
+# Track added nodes
 seen = set()
-for (industry, machine, lube_status), group in df.groupby(["industry_type", "machine_type", "lubricated_from_subscription"]):
+valid_group_count = 0
+
+# Loop through grouped data
+for (industry, machine, lube_status), group in df.groupby(["industry_type", "asset_type", "lubricated_from_subscription"]):
+    if group.shape[0] <= 4:
+        continue  # Skip groups with less than 3 samples
+
+    valid_group_count += 1
     median_days = int(group["time_to_failure_days"].median())
-    lube_label = f"{lube_status}: ~{median_days}d"
+    lube_label = f"Recommended to lubricate after ~{median_days} days"
 
     # Add industry node
     if industry not in seen:
@@ -278,15 +286,43 @@ for (industry, machine, lube_status), group in df.groupby(["industry_type", "mac
 
     # Add lubrication node
     lube_node = f"{machine_node}_{lube_status}"
-    color = "#2ca02c" if "With" in lube_status else "#d62728"
-    net.add_node(lube_node, label=lube_label, level=2, color=color)
-    net.add_edge(machine_node, lube_node)
+    if lube_node not in seen:
+        net.add_node(lube_node, label=lube_label, level=2, color="#2ca02c")
+        net.add_edge(machine_node, lube_node)
+        seen.add(lube_node)
 
-# Save graph to HTML
+# Handle case when all groups were filtered out
+if valid_group_count == 0:
+    st.warning("No lubrication groups with at least 3 records found.")
+    st.stop()
+
+# Save and display the graph
 with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".html") as f:
     net.save_graph(f.name)
     html_content = open(f.name, "r").read()
 
-# Display in Streamlit
-st.markdown("### 🧠 Interactive Lubrication Rule Tree")
+st.markdown("### 🧠 Lubrication Recommendation Tree")
 st.components.v1.html(html_content, height=700, scrolling=True)
+
+# Updated Summary Table
+st.markdown("### 📋 Lubrication Recommendations Summary")
+
+summary = (
+    df.groupby(["industry_type", "asset_type"])
+    .filter(lambda x: len(x) >= 4)
+    .groupby(["industry_type", "asset_type"])
+    .agg(
+        recommended_days=("time_to_failure_days", lambda x: int(x.median())),
+        samples=("time_to_failure_days", "count")
+    )
+    .reset_index()
+)
+
+summary = summary.rename(columns={
+    "industry_type": "Industry",
+    "asset_type": "Machine",
+    "recommended_days": "Recommended Lubrication Cycle (days)",
+    "samples": "Data Points"
+})
+
+st.dataframe(summary, use_container_width=True)
